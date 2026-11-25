@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="DynaDAQ One: Dynalabs cihazları için ölçüm, kayıt, analiz ve dışa aktarma yazılımı. Windows ve Android.">
+<meta name="description" content="DynaDAQ One: measurement, recording, analysis and export software for Dynalabs devices. Windows and Android.">
 <link rel="icon" type="image/png" href="img/dynadaq-one-icon.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>DynaDAQ One</title>
@@ -241,14 +241,14 @@ pre.csv .c { color: var(--muted); }
 
 </head>
 <body>
-<div id="page" data-lang="tr">
+<div id="page" data-lang="en">
 
 <header class="top">
   <div class="wrap">
     <a class="mark" href="#top">Dyna<span>DAQ One</span></a>
     <div class="lang" role="group" aria-label="Language">
-      <button type="button" id="lang-tr" data-set="tr" aria-pressed="true">TR</button>
-      <button type="button" id="lang-en" data-set="en" aria-pressed="false">EN</button>
+      <button type="button" id="lang-tr" data-set="tr" aria-pressed="false">TR</button>
+      <button type="button" id="lang-en" data-set="en" aria-pressed="true">EN</button>
     </div>
   </div>
 </header>
@@ -704,7 +704,7 @@ time_s,X_g,Y_g,Z_g
   }
   var saved = null;
   try { saved = localStorage.getItem('dq-lang'); } catch (e) {}
-  setLang(saved || ((navigator.language || 'tr').toLowerCase().indexOf('tr') === 0 ? 'tr' : 'en'));
+  setLang(saved === 'tr' ? 'tr' : 'en');
   document.querySelectorAll('.lang button').forEach(function (b) { b.addEventListener('click', function () { setLang(b.dataset.set); }); });
 
   // Separated / Combined
