@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="DynaDAQ One: Dynalabs cihazları için ölçüm, kayıt, analiz ve dışa aktarma yazılımı. Windows ve Android.">
+<link rel="icon" type="image/png" href="img/dynadaq-one-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>DynaDAQ One</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: instrument-panel page. Dark graphite ground like the app, one orange accent,
+   X/Y/Z axis colours used only where they mean axes. Sections follow the app's tabs: Setup → Measure → Analyze. */
+:root {
+  --ground: #14161a;
+  --panel: #1c1f24;
+  --panel-2: #23272d;
+  --line: #2f343b;
+  --fg: #e8eaed;
+  --muted: #9aa1ab;
+  --accent: #f37421;
+  --accent-ink: #1a0e05;
+  --x: #4c9aff;
+  --y: #3fb950;
+  --z: #f2a7d8;
+  --shadow: 0 18px 50px rgba(0, 0, 0, .45);
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ground: #f1f2f4; --panel: #ffffff; --panel-2: #e8eaee; --line: #d5d9df;
+    --fg: #16181c; --muted: #5b626c; --accent: #d9600f; --accent-ink: #ffffff;
+    --x: #1f6fd6; --y: #1f8f3a; --z: #b0408a; --shadow: 0 18px 44px rgba(20, 24, 30, .14);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --ground: #f1f2f4; --panel: #ffffff; --panel-2: #e8eaee; --line: #d5d9df;
+  --fg: #16181c; --muted: #5b626c; --accent: #d9600f; --accent-ink: #ffffff;
+  --x: #1f6fd6; --y: #1f8f3a; --z: #b0408a; --shadow: 0 18px 44px rgba(20, 24, 30, .14);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--ground);
+  color: var(--fg);
+  font: 400 16px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+#page[data-lang="tr"] [data-l="en"], #page[data-lang="en"] [data-l="tr"] { display: none !important; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* header */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground); }
+.top .wrap {
+  display: flex; align-items: center; gap: 24px; padding-block: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.mark { font: 700 22px/1 var(--display); letter-spacing: -.01em; text-decoration: none; white-space: nowrap; }
+.mark span { color: #F37421; }
+.nav { display: flex; gap: 20px; margin-left: auto; font-size: 14px; }
+.nav a { text-decoration: none; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
+.nav a:hover { color: var(--fg); }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lang button {
+  font: 500 13px/1 var(--mono); padding: 7px 10px; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+}
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* hero */
+.hero { padding-block: 64px 40px; display: grid; gap: 40px; }
+.eyebrow { font: 500 13px/1.4 var(--mono); color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+h1 {
+  font: 700 clamp(38px, 6.2vw, 76px)/1.02 var(--display); letter-spacing: -.02em; margin: 10px 0 18px;
+  text-wrap: balance; max-width: 15ch;
+}
+.lede { font-size: clamp(17px, 2vw, 20px); color: var(--muted); max-width: 60ch; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 26px; padding: 0; list-style: none; }
+.chips li {
+  font: 500 13px/1 var(--mono); padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--fg);
+}
+.chips b { color: var(--accent); font-weight: 500; }
+
+.shot {
+  margin: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.shot button { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.shot img { display: block; width: 100%; height: auto; }
+.shot figcaption {
+  font-size: 13.5px; color: var(--muted); padding: 10px 14px; border-top: 1px solid var(--line); background: var(--panel);
+}
+
+/* axis legend: the only place the X/Y/Z colours appear as decoration-free information */
+.axes { display: inline-flex; gap: 12px; font: 500 12px/1 var(--mono); color: var(--muted); }
+.axes i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+
+/* flow */
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-block: 24px 8px; }
+.flow a { padding: 20px 22px; text-decoration: none; background: var(--panel); display: grid; gap: 6px; }
+.flow a + a { border-left: 1px solid var(--line); }
+.flow a:hover { background: var(--panel-2); }
+.flow .n { font: 500 12px/1 var(--mono); color: var(--accent); }
+.flow .t { font: 600 20px/1.1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+.flow .d { font-size: 14px; color: var(--muted); }
+
+/* sections */
+section.block { padding-block: 72px 24px; border-top: 1px solid var(--line); margin-top: 48px; }
+.head { display: grid; gap: 10px; margin-bottom: 34px; max-width: 70ch; }
+.tab-label { font: 600 13px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h2 { font: 700 clamp(28px, 3.6vw, 44px)/1.08 var(--display); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+h3 { font: 600 22px/1.2 var(--display); margin: 0 0 10px; letter-spacing: .005em; }
+.head p { color: var(--muted); margin: 0; font-size: 17px; }
+
+.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; align-items: start; margin-bottom: 64px; }
+.feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.feature.flip .copy { order: 2; }
+.copy { min-width: 0; padding-top: 6px; }
+.copy p { margin: 0 0 14px; color: var(--muted); }
+.specs { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.specs li { display: grid; grid-template-columns: minmax(0, 11ch) minmax(0, 1fr); gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.specs .k { font: 500 12.5px/1.6 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.specs .v { color: var(--fg); }
+.mono { font-family: var(--mono); font-size: .92em; }
+
+/* segmented view switch */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; margin: 6px 0 16px; }
+.seg button { font: 500 14px/1 var(--body); padding: 10px 16px; border: 0; background: var(--panel); color: var(--muted); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* pair of shots */
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+
+/* theme comparison */
+.compare { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); background: var(--panel); }
+.compare img { display: block; width: 100%; height: auto; user-select: none; -webkit-user-drag: none; }
+.compare .over { position: absolute; inset: 0; clip-path: inset(0 0 0 var(--cut, 50%)); }
+.compare .rule { position: absolute; top: 0; bottom: 0; left: var(--cut, 50%); width: 2px; background: var(--accent); pointer-events: none; }
+.compare .rule::after {
+  content: ""; position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: var(--accent); box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.compare .tag { position: absolute; top: 12px; font: 500 12px/1 var(--mono); padding: 6px 9px; border-radius: 5px; background: rgba(0,0,0,.6); color: #fff; }
+.compare .tag.l { left: 12px; } .compare .tag.r { right: 12px; background: rgba(255,255,255,.85); color: #111; }
+.range { width: 100%; margin-top: 14px; accent-color: var(--accent); }
+
+/* devices */
+.devices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.dev { border: 1px solid var(--line); border-radius: 10px; padding: 22px; background: var(--panel); display: grid; gap: 8px; align-content: start; }
+.dev.on { border-color: var(--accent); }
+.dev .k { font: 500 12px/1 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.dev h3 { margin: 0; }
+.dev p { margin: 0; color: var(--muted); font-size: 15px; }
+
+footer { border-top: 1px solid var(--line); margin-top: 72px; padding-block: 28px 40px; color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: space-between; }
+
+/* lightbox */
+dialog.lb { border: 0; padding: 0; background: transparent; max-width: min(96vw, 1600px); width: 100%; }
+dialog.lb::backdrop { background: rgba(5, 6, 8, .86); }
+dialog.lb img { display: block; width: 100%; height: auto; border-radius: 8px; }
+dialog.lb p { color: #e8eaed; font-size: 14px; margin: 10px 2px 0; }
+dialog.lb button { position: absolute; top: 8px; right: 8px; font: 500 13px/1 var(--mono); padding: 8px 10px; border-radius: 6px; border: 0; background: rgba(0,0,0,.65); color: #fff; cursor: pointer; }
+
+/* capability grid */
+.caps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.caps > div { padding: 22px 22px 24px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--panel); min-width: 0; }
+.caps h3 { font-size: 19px; margin-bottom: 8px; }
+.caps p { margin: 0; color: var(--muted); font-size: 15px; }
+.export-grid { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 6fr); gap: 32px; align-items: start; }
+.export-grid .stack { display: grid; gap: 24px; min-width: 0; }
+.export-grid .specs { margin-top: 0; }
+.export-grid .specs li { grid-template-columns: minmax(0, 13ch) minmax(0, 1fr); }
+pre.csv { margin: 0; padding: 18px 20px; overflow-x: auto; font: 13px/1.7 var(--mono); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+pre.csv .c { color: var(--muted); }
+@media (max-width: 880px) { .export-grid { grid-template-columns: minmax(0, 1fr); } }
+.limits { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: baseline; margin-top: 8px; font: 500 14px/1.3 var(--mono); color: var(--fg); }
+.limits b { font: 700 30px/1 var(--display); color: var(--accent); margin-right: 4px; }
+.limits .muted { color: var(--muted); }
+.dev-k { display: inline-block; font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; margin-bottom: 12px; }
+.together { display: grid; gap: 22px; padding: 28px; border: 1px solid var(--accent); border-radius: 12px; background: var(--panel); }
+.together .copy { max-width: 75ch; padding: 0; }
+.android { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 40px; align-items: center; }
+.android h2 { margin: 10px 0 14px; }
+.phones { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.shot.phone { border-radius: 18px; }
+@media (max-width: 880px) { .android { grid-template-columns: minmax(0, 1fr); } .together { padding: 18px; } }
+.hero-intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 40px; align-items: center; }
+.hero-icon { width: 100%; max-width: 340px; height: auto; justify-self: center; }
+@media (max-width: 880px) { .hero-intro { grid-template-columns: minmax(0, 1fr); } .hero-icon { display: none; } }
+.reqs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+.req-card { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 22px; display: grid; gap: 16px; align-content: start; min-width: 0; }
+.req-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.req-top h3 { margin: 0; font-size: 26px; }
+.dl { display: inline-grid; gap: 2px; text-decoration: none; background: var(--accent); color: var(--accent-ink); font: 600 15px/1.2 var(--body); padding: 11px 16px; border-radius: 8px; }
+.dl small { font: 500 12px/1 var(--mono); opacity: .8; }
+.dl:hover { filter: brightness(1.08); }
+.req-table { display: grid; border-top: 1px solid var(--line); overflow-x: auto; }
+.req-table > div { display: grid; grid-template-columns: minmax(0, 11ch) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.req-table .rt-h span { font: 600 12px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.req-table .rt-h span:last-child, .req-table .rt-h span:nth-child(3) { color: var(--accent); }
+.req-table .k { font: 500 12.5px/1.5 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.req-foot { margin: 0; color: var(--muted); font-size: 14px; }
+.reqs h3 { margin-bottom: 12px; }
+.reqs .specs li { grid-template-columns: minmax(0, 15ch) minmax(0, 1fr); }
+.req-note { color: var(--muted); max-width: 75ch; margin: 24px 0 0; font-size: 15px; }
+@media (max-width: 880px) { .reqs { grid-template-columns: minmax(0, 1fr); } }
+
+@media (max-width: 880px) {
+  .nav { display: none; }
+  .top .wrap { justify-content: space-between; }
+  .feature, .feature.flip, .pair, .devices, .caps { grid-template-columns: minmax(0, 1fr); }
+  .feature.flip .copy { order: 0; }
+  .flow { grid-template-columns: minmax(0, 1fr); }
+  .flow a + a { border-left: 0; border-top: 1px solid var(--line); }
+  .specs li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .shot { transition: transform .25s ease; }
+  .shot:hover { transform: translateY(-2px); }
+}
+</style>
+
+</head>
+<body>
+<div id="page" data-lang="tr">
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#top">Dyna<span>DAQ One</span></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#setup">Setup</a>
+      <a href="#measure">Measure</a>
+      <a href="#analyze">Analyze</a>
+      <a href="#export">Export</a>
+      <a href="#devices"><span data-l="tr">Cihazlar</span><span data-l="en">Devices</span></a>
+      <a href="#android">Android</a>
+      <a href="#download"><span data-l="tr">İndir</span><span data-l="en">Download</span></a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" id="lang-tr" data-set="tr" aria-pressed="true">TR</button>
+      <button type="button" id="lang-en" data-set="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+
+  <div class="hero">
+    <div class="hero-intro">
+    <div>
+      <div class="eyebrow"><span data-l="tr">Titreşim ölçüm yazılımı · Windows ve Android</span><span data-l="en">Vibration measurement software · Windows and Android</span></div>
+      <h1>
+        <span data-l="tr">Kurulum, canlı ölçüm ve analiz tek yazılımda.</span>
+        <span data-l="en">Setup, live measurement and analysis in one program.</span>
+      </h1>
+      <p class="lede">
+        <span data-l="tr">DynaDAQ One, Dynalabs cihazlarını USB’den tanır, ayarlarını yazılımdan yönetir, veriyi canlı grafik ve FFT ile gösterir. Kayıtları filtre, aralık istatistiği ve spektrumla analiz edip CSV ya da MATLAB dosyası olarak dışa aktarır. Aynı uygulama DynaDAQ-VR titreşim kaydedicinin SD kart kayıtlarını da açar.</span>
+        <span data-l="en">DynaDAQ One recognises Dynalabs devices over USB, manages their settings, and shows the data as live plots and FFT. It analyses recordings with filters, range statistics and spectra, and exports them to CSV or MATLAB. The same app opens the SD card recordings of the DynaDAQ-VR vibration recorder.</span>
+      </p>
+      <ul class="chips">
+        <li><b>Live</b> <span data-l="tr">grafik ve FFT</span><span data-l="en">plots and FFT</span></li>
+        <li><b>C1–C2</b> <span data-l="tr">aralık istatistiği</span><span data-l="en">range statistics</span></li>
+        <li><b>Butterworth</b> <span data-l="tr">LP · HP · BP filtre</span><span data-l="en">LP · HP · BP filters</span></li>
+        <li><b>CSV · .mat</b> <span data-l="tr">dışa aktarma</span><span data-l="en">export</span></li>
+        <li><b>Dark · Light</b> <span data-l="tr">tema</span><span data-l="en">themes</span></li>
+      </ul>
+    </div>
+    <img class="hero-icon" src="img/dynadaq-one-icon.png" width="500" height="500" alt="DynaDAQ One">
+    </div>
+    <figure class="shot">
+      <button type="button" class="zoom" id="z-hero" data-src="img/vr-analyze-fft.png">
+        <img src="img/vr-analyze-fft.png" width="1582" height="991" alt="Analyze: recording with C1-C2 range, statistics and FFT">
+      </button>
+      <figcaption>
+        <span data-l="tr">Analyze · DynaDAQ-VR ile alınmış gerçek bir kayıt. Darbe olayları C1–C2 ile seçildi; sağda aralık istatistiği, altta aralığın FFT’si.</span>
+        <span data-l="en">Analyze · a real recording taken with DynaDAQ-VR. The impact events are selected with C1–C2; range statistics on the right, the range FFT below.</span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <nav class="flow" aria-label="Workflow">
+    <a href="#setup"><span class="n">01</span><span class="t">Setup</span>
+      <span class="d" data-l="tr">Cihazı tanıma, ayarlar, kalibrasyon</span>
+      <span class="d" data-l="en">Device detection, settings, calibration</span></a>
+    <a href="#measure"><span class="n">02</span><span class="t">Measure</span>
+      <span class="d" data-l="tr">Canlı grafik, göstergeler, canlı FFT, kayıt</span>
+      <span class="d" data-l="en">Live plots, meters, live FFT, recording</span></a>
+    <a href="#analyze"><span class="n">03</span><span class="t">Analyze</span>
+      <span class="d" data-l="tr">İstatistik, FFT, filtre, içe aktarma</span>
+      <span class="d" data-l="en">Statistics, FFT, filters, import</span></a>
+    <a href="#export"><span class="n">04</span><span class="t">Export</span>
+      <span class="d" data-l="tr">CSV ve MATLAB, ayarlanabilir biçim</span>
+      <span class="d" data-l="en">CSV and MATLAB, configurable format</span></a>
+  </nav>
+
+  <!-- CAPABILITIES -->
+  <section class="block" id="features">
+    <div class="head">
+      <span class="tab-label"><span data-l="tr">Özellikler</span><span data-l="en">Features</span></span>
+      <h2><span data-l="tr">Ölçümün her adımı aynı uygulamada</span><span data-l="en">Every step of a measurement in one app</span></h2>
+    </div>
+    <div class="caps">
+      <div><h3><span data-l="tr">Otomatik cihaz tanıma</span><span data-l="en">Automatic device detection</span></h3>
+        <p><span data-l="tr">USB’ye takılan cihaz kendiliğinden bulunur; sensörler ve ölçüm aralıkları cihazdan okunur.</span><span data-l="en">A device plugged into USB is found on its own; sensors and ranges are read from the device.</span></p></div>
+      <div><h3><span data-l="tr">Aynı oturumda birden çok cihaz</span><span data-l="en">Several devices per session</span></h3>
+        <p><span data-l="tr">İvmeölçer, VR ve GNSS aynı ekranda izlenir ve tek kayıt dosyasına birlikte yazılır.</span><span data-l="en">Accelerometers, VR and GNSS share one screen and record together into one file.</span></p></div>
+      <div><h3><span data-l="tr">Canlı grafik ve göstergeler</span><span data-l="en">Live plots and meters</span></h3>
+        <p><span data-l="tr">Eksenler ayrı ya da tek grafikte; anlık, min ve max değerler; Freeze ile dondurma.</span><span data-l="en">Axes separated or combined; actual, min and max values; Freeze to hold the view.</span></p></div>
+      <div><h3><span data-l="tr">Canlı ve kayıtlı FFT</span><span data-l="en">Live and recorded FFT</span></h3>
+        <p><span data-l="tr">Measure ve Analyze aynı FFT ayarını ve hesabını kullanır; canlı spektrum kayıtla aynı çıkar.</span><span data-l="en">Measure and Analyze share one FFT setup and computation, so the live spectrum matches the recording.</span></p></div>
+      <div><h3><span data-l="tr">Filtre ve aralık istatistiği</span><span data-l="en">Filters and range statistics</span></h3>
+        <p><span data-l="tr">C1–C2 aralığında RMS, ortalama, min, max, tepe-tepe; sıfır fazlı Butterworth filtreler.</span><span data-l="en">RMS, mean, min, max and peak-peak over C1–C2; zero-phase Butterworth filters.</span></p></div>
+      <div><h3><span data-l="tr">İçe ve dışa aktarma</span><span data-l="en">Import and export</span></h3>
+        <p><span data-l="tr">VR SD kart kayıtlarını açar; seçili aralığı CSV ya da MATLAB .mat olarak verir.</span><span data-l="en">Opens VR SD card recordings; exports the selected range as CSV or MATLAB .mat.</span></p></div>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section class="block" id="setup">
+    <div class="head">
+      <span class="tab-label">01 · Setup</span>
+      <h2><span data-l="tr">Cihaz ayarları yazılımdan</span><span data-l="en">Device settings from the software</span></h2>
+      <p><span data-l="tr">Bağlı her cihazın kendi sayfası vardır. Değiştirilen ayarlar işaretlenir, Apply ile cihaza gönderilir, Discard ile geri alınır. Ayarı cihaza yazılan alanlar ayrı bir simgeyle gösterilir.</span>
+         <span data-l="en">Each connected device has its own page. Changed settings are marked, sent to the device with Apply and reverted with Discard. Fields that are written to the device carry their own icon.</span></p>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <h3><span data-l="tr">Cihaz kimliği ve durumu</span><span data-l="en">Device identity and status</span></h3>
+        <p><span data-l="tr">Uygulama cihazdaki sensörleri seri numarasından çıkarır ve yalnızca bunların ayarlarını gösterir. Cihaz saati her bağlantıda bilgisayarın saatine ayarlanır.</span>
+           <span data-l="en">The app reads the fitted sensors from the serial number and shows settings only for them. The device clock is set from the computer on every connection.</span></p>
+        <ul class="specs">
+          <li><span class="k" data-l="tr">Kimlik</span><span class="k" data-l="en">Identity</span><span class="v"><span data-l="tr">Cihaz adı, seri numarası, firmware</span><span data-l="en">Device name, serial, firmware</span></span></li>
+          <li><span class="k" data-l="tr">Durum</span><span class="k" data-l="en">Status</span><span class="v"><span data-l="tr">Pil ve depolama doluluğu</span><span data-l="en">Battery and storage usage</span></span></li>
+          <li><span class="k" data-l="tr">Canlı akış</span><span class="k" data-l="en">Live stream</span><span class="v"><span data-l="tr">Canlıda hangi sensörün akacağı (VR’da Digital ya da Piezo)</span><span data-l="en">Which sensor streams live (Digital or Piezo on the VR)</span></span></li>
+          <li><span class="k" data-l="tr">Kalibrasyon</span><span class="k" data-l="en">Calibration</span><span class="v"><span data-l="tr">Cihazda saklanan katsayılar ve son kalibrasyon tarihi</span><span data-l="en">Coefficients stored in the device, last calibration date</span></span></li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-dev" data-src="img/vr-setup-device.png"><img src="img/vr-setup-device.png" width="1582" height="991" alt="Setup, device page" loading="lazy"></button>
+        <figcaption><span data-l="tr">Setup · Device, örnek: DynaDAQ-VR (dijital 40 g + piezo 200 g).</span><span data-l="en">Setup · Device, example: DynaDAQ-VR (digital 40 g + piezo 200 g).</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="feature flip">
+      <div class="copy">
+        <h3><span data-l="tr">Cihazın kendi kaydını ayarlama</span><span data-l="en">Configure on-device recording</span></h3>
+        <p><span data-l="tr">Bilgisayardan bağımsız kayıt yapan cihazlarda kayıt ayarı da yazılımdan yapılır. DynaDAQ-VR’da her sensör için SD kart örnekleme hızı ve kayıt modu seçilir; uygulama SD hızının canlı akıştan farklı olduğu durumu ekranda yazar.</span>
+           <span data-l="en">For devices that record on their own, recording is configured from the software too. On DynaDAQ-VR you set the SD card rate per sensor and the log mode; the app tells you when the SD rate differs from the live stream.</span></p>
+        <ul class="specs">
+          <li><span class="k" data-l="tr">Kayıt modu</span><span class="k" data-l="en">Log mode</span><span class="v"><span data-l="tr">Standard (açık kaldıkça) · Trigger (g eşiği aşılınca) · Timer (belirli süre)</span><span data-l="en">Standard (while on) · Trigger (above a g threshold) · Timer (set time)</span></span></li>
+          <li><span class="k">Storage mode</span><span class="v"><span data-l="tr">Tek tıkla VR USB disk olarak açılır, kayıtlar kopyalanır</span><span data-l="en">One click opens the VR as a USB drive to copy recordings</span></span></li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-rec" data-src="img/vr-setup-recording-trigger.png"><img src="img/vr-setup-recording-trigger.png" width="1582" height="991" alt="Setup, SD card recording with Trigger mode" loading="lazy"></button>
+        <figcaption><span data-l="tr">Setup · Recording (SD card): sensör başına hız, Trigger modu ve eşik.</span><span data-l="en">Setup · Recording (SD card): rate per sensor, Trigger mode and threshold.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- MEASURE -->
+  <section class="block" id="measure">
+    <div class="head">
+      <span class="tab-label">02 · Measure</span>
+      <h2><span data-l="tr">Canlı veri, eksen eksen ya da tek grafikte</span><span data-l="en">Live data, axis by axis or on one plot</span></h2>
+      <p><span data-l="tr">Cihaz bağlanınca veri akmaya başlar. Grafik penceresi ve Y ölçeği seçilir; Freeze ile görüntü dondurulur, C1–C2 imleçleriyle aralık seçilir, Fit all ile tüm veri sığdırılır.</span>
+         <span data-l="en">Data starts flowing as soon as a device connects. Set the plot window and Y scale; Freeze holds the view, C1–C2 cursors select a range, Fit all shows everything.</span></p>
+    </div>
+
+    <div class="seg" role="tablist" aria-label="Recorder channels">
+      <button type="button" role="tab" id="tab-sep" aria-selected="true" aria-controls="view-shot">Separated</button>
+      <button type="button" role="tab" id="tab-comb" aria-selected="false" aria-controls="view-shot">Combined</button>
+    </div>
+    <figure class="shot" id="view-shot">
+      <button type="button" class="zoom" id="z-view" data-src="img/vr-measure-fft.png"><img id="view-img" src="img/vr-measure-fft.png" width="1582" height="991" alt="Measure, separated channels with live FFT" loading="lazy"></button>
+      <figcaption>
+        <span class="axes" aria-hidden="true"><span><i style="background:var(--x)"></i>X</span><span><i style="background:var(--y)"></i>Y</span><span><i style="background:var(--z)"></i>Z</span></span>
+        &nbsp;
+        <span id="view-cap-tr" data-l="tr">Separated: her eksen kendi grafiğinde ve kendi ölçeğinde.</span>
+        <span id="view-cap-en" data-l="en">Separated: each axis on its own plot and scale.</span>
+      </figcaption>
+    </figure>
+
+    <div class="feature" style="margin-top:56px">
+      <div class="copy">
+        <h3><span data-l="tr">Canlı FFT</span><span data-l="en">Live FFT</span></h3>
+        <p><span data-l="tr">Spektrum ölçüm sırasında güncellenir ve tepe frekansı göstergede okunur. Frekans ekseni fareyle ya da dokunarak yakınlaştırılır.</span>
+           <span data-l="en">The spectrum updates while you measure and the peak frequency shows in a meter. Zoom the frequency axis with the mouse or by touch.</span></p>
+        <ul class="specs">
+          <li><span class="k" data-l="tr">Nokta</span><span class="k" data-l="en">Points</span><span class="v mono">1024 · 2048 · 4096 · 8192</span></li>
+          <li><span class="k" data-l="tr">Pencere</span><span class="k" data-l="en">Window</span><span class="v">Hanning · Flat-top · Rectangular</span></li>
+          <li><span class="k" data-l="tr">Ortalama</span><span class="k" data-l="en">Averaging</span><span class="v"><span data-l="tr">RMS, 4–32 blok; örtüşme 0 / 50 / 66.7 / 75 %</span><span data-l="en">RMS, 4–32 blocks; overlap 0 / 50 / 66.7 / 75 %</span></span></li>
+        </ul>
+        <h3 style="margin-top:28px"><span data-l="tr">Kayıt</span><span data-l="en">Recording</span></h3>
+        <p><span data-l="tr">Record, oturumdaki bütün cihazları tek <span class="mono">.dqrec</span> dosyasına yazar. Kayıt elle durdurulur ya da seçilen süre dolunca kendiliğinden biter. Sık kullanılan komutların klavye kısayolları vardır.</span>
+           <span data-l="en">Record writes every device in the session into one <span class="mono">.dqrec</span> file. Stop it by hand or let it end after a set duration. Common commands have keyboard shortcuts.</span></p>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-comb" data-src="img/vr-measure-combined.png"><img src="img/vr-measure-combined.png" width="1582" height="991" alt="Measure, combined channels with live FFT" loading="lazy"></button>
+        <figcaption><span data-l="tr">Combined görünüm ve canlı FFT (0–650 Hz’e yaklaştırılmış). Örnek: DynaDAQ-VR dijital ivmeölçer.</span><span data-l="en">Combined view with live FFT (zoomed to 0–650 Hz). Example: DynaDAQ-VR digital accelerometer.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ANALYZE -->
+  <section class="block" id="analyze">
+    <div class="head">
+      <span class="tab-label">03 · Analyze</span>
+      <h2><span data-l="tr">Kayıtları aralık aralık inceleyin</span><span data-l="en">Work through recordings range by range</span></h2>
+      <p><span data-l="tr">Görüntüler DynaDAQ-VR ile alınmış gerçek bir kayıttan: 40 saniyelik, 1 kHz üç eksen ivme verisi ve içinde bir dizi darbe olayı.</span>
+         <span data-l="en">The screens show a real recording taken with DynaDAQ-VR: 40 seconds of 1 kHz three-axis acceleration with a series of impact events.</span></p>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <h3><span data-l="tr">Kayıt listesi ve C1–C2 istatistiği</span><span data-l="en">Recording list and C1–C2 statistics</span></h3>
+        <p><span data-l="tr">Kayıtlar tarihe göre listelenir ve aranabilir; kaydın başlangıcı, süresi ve cihazları yan panelde görünür. Grafikte sürükleyerek C1–C2 aralığı seçilir, tablo o aralığı hemen hesaplar.</span>
+           <span data-l="en">Recordings are listed by date and searchable; start, length and devices show in the side panel. Drag on the plot to set C1–C2 and the table updates for that range.</span></p>
+        <ul class="specs">
+          <li><span class="k" data-l="tr">Aralıkta</span><span class="k" data-l="en">In range</span><span class="v">RMS · Mean · Min · Max · Peak-peak · Δt</span></li>
+          <li><span class="k" data-l="tr">İmleçte</span><span class="k" data-l="en">At cursor</span><span class="v"><span data-l="tr">Her kanalın anlık değeri</span><span data-l="en">Each channel’s value</span></span></li>
+          <li><span class="k" data-l="tr">İçe aktarma</span><span class="k" data-l="en">Import</span><span class="v"><span data-l="tr">VR SD kart kaydı (<span class="mono">.dqconf</span>), proje ve parça adıyla</span><span data-l="en">VR SD card recordings (<span class="mono">.dqconf</span>), named by project and part</span></span></li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-ov" data-src="img/vr-analyze-overview.png"><img src="img/vr-analyze-overview.png" width="1582" height="991" alt="Analyze overview with recording list" loading="lazy"></button>
+        <figcaption><span data-l="tr">Analyze · kayıt listesi ve SD karttan aktarılmış bir VR kaydı.</span><span data-l="en">Analyze · recording list and a VR recording imported from the SD card.</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="feature flip">
+      <div class="copy">
+        <h3><span data-l="tr">Filtre</span><span data-l="en">Filters</span></h3>
+        <p><span data-l="tr">Alçak, yüksek ve bant geçiren filtre: 4. derece Butterworth, sıfır faz. Ortalamayı (DC) çıkarma ayrı bir seçenek. İstatistik, FFT ve dışa aktarma işlenmiş sinyali kullanır; araç çubuğu açık filtreyi her zaman gösterir.</span>
+           <span data-l="en">Low-pass, high-pass and band-pass: 4th-order Butterworth, zero phase, with a separate option to remove the mean (DC). Statistics, FFT and export use the processed signal, and the toolbar always shows the active filter.</span></p>
+        <figure class="shot" style="margin-top:18px">
+          <button type="button" class="zoom" id="z-fd" data-src="img/vr-analyze-filter-dialog.png"><img src="img/vr-analyze-filter-dialog.png" width="1582" height="991" alt="Filter dialog, band-pass 10 to 300 Hz" loading="lazy"></button>
+          <figcaption><span data-l="tr">Band-pass 10–300 Hz, ortalama çıkarılmış.</span><span data-l="en">Band-pass 10–300 Hz, mean removed.</span></figcaption>
+        </figure>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-flt" data-src="img/vr-analyze-filtered.png"><img src="img/vr-analyze-filtered.png" width="1582" height="991" alt="Analyze after band-pass filter" loading="lazy"></button>
+        <figcaption><span data-l="tr">Filtre sonrası: Z’deki 1 g yerçekimi kalktı, FFT 10–300 Hz bandında. Araç çubuğunda “BP 10–300 Hz · no mean”.</span><span data-l="en">After filtering: the 1 g of gravity on Z is gone and the FFT sits in the 10–300 Hz band. The toolbar reads “BP 10–300 Hz · no mean”.</span></figcaption>
+      </figure>
+    </div>
+
+  </section>
+
+  <!-- EXPORT -->
+  <section class="block" id="export">
+    <div class="head">
+      <span class="tab-label">04 · Export</span>
+      <h2><span data-l="tr">Veriyi kullandığınız araca taşıyın</span><span data-l="en">Take the data into the tools you use</span></h2>
+      <p><span data-l="tr">Seçili C1–C2 aralığı CSV ya da MATLAB .mat dosyasına yazılır. Filtre açıksa işlenmiş sinyal aktarılır; dosyadaki veri ekranda gördüğünüzle aynıdır. Biçim Excel, MATLAB, Python ya da kendi raporlama aracınıza göre ayarlanır.</span>
+         <span data-l="en">The selected C1–C2 range is written to CSV or MATLAB .mat. With a filter on, the processed signal is exported, so the file matches the screen. The format adapts to Excel, MATLAB, Python or your own reporting tool.</span></p>
+    </div>
+
+    <div class="export-grid">
+      <ul class="specs">
+        <li><span class="k" data-l="tr">Biçim</span><span class="k" data-l="en">Format</span><span class="v"><span data-l="tr">CSV ve MATLAB .mat (GNSS kanalları CSV)</span><span data-l="en">CSV and MATLAB .mat (GNSS channels as CSV)</span></span></li>
+        <li><span class="k" data-l="tr">Aralık</span><span class="k" data-l="en">Range</span><span class="v"><span data-l="tr">C1–C2 arası; bütün kayıt için imleçleri uçlara alın</span><span data-l="en">Between C1 and C2; move the cursors to the ends for the whole recording</span></span></li>
+        <li><span class="k" data-l="tr">Sinyal</span><span class="k" data-l="en">Signal</span><span class="v"><span data-l="tr">Ham ya da filtrelenmiş (Analyze’daki filtre ve DC çıkarma uygulanır)</span><span data-l="en">Raw or processed (the Analyze filter and mean removal apply)</span></span></li>
+        <li><span class="k" data-l="tr">Kanallar</span><span class="k" data-l="en">Channels</span><span class="v"><span data-l="tr">Hepsi ya da yalnızca grafikte görünenler</span><span data-l="en">All, or only those visible on the plot</span></span></li>
+        <li><span class="k" data-l="tr">Ayraç</span><span class="k" data-l="en">Delimiter</span><span class="v"><span data-l="tr">Virgül, noktalı virgül ya da sekme</span><span data-l="en">Comma, semicolon or tab</span></span></li>
+        <li><span class="k" data-l="tr">Ondalık</span><span class="k" data-l="en">Decimal</span><span class="v"><span data-l="tr">Nokta ya da virgül; Türkçe Excel dosyayı doğrudan açar</span><span data-l="en">Point or comma, so regional Excel opens the file directly</span></span></li>
+        <li><span class="k" data-l="tr">Zaman sütunu</span><span class="k" data-l="en">Time column</span><span class="v"><span data-l="tr">Kayıt başından saniye, cihaz / yerel saat, UTC ya da ikisi birlikte</span><span data-l="en">Seconds from start, device / local clock, UTC, or both</span></span></li>
+        <li><span class="k" data-l="tr">Başlık</span><span class="k" data-l="en">Header</span><span class="v"><span data-l="tr">Sütun adları ve <span class="mono">#</span> bilgi satırları: kaynak, cihaz, örnekleme hızı, başlangıç saati</span><span data-l="en">Column names and <span class="mono">#</span> info lines: source, device, sample rate, start time</span></span></li>
+        <li><span class="k" data-l="tr">Hassasiyet</span><span class="k" data-l="en">Precision</span><span class="v"><span data-l="tr">Anlamlı hane: otomatik, 4, 6 ya da 9</span><span data-l="en">Significant digits: auto, 4, 6 or 9</span></span></li>
+        <li><span class="k" data-l="tr">Çok cihaz</span><span class="k" data-l="en">Multi-device</span><span class="v"><span data-l="tr">Her cihaz kendi dosyasına, kendi başlangıç anıyla (<span class="mono">_acc1</span>, <span class="mono">_acc2</span> …)</span><span data-l="en">One file per device, each with its own start time (<span class="mono">_acc1</span>, <span class="mono">_acc2</span> …)</span></span></li>
+      </ul>
+      <div class="stack">
+        <figure class="shot">
+          <button type="button" class="zoom" id="z-exp" data-src="img/vr-analyze-export.png"><img src="img/vr-analyze-export.png" width="1582" height="991" alt="Export menu with CSV and MATLAB options" loading="lazy"></button>
+          <figcaption><span data-l="tr">Export menüsü: seçili aralık CSV ya da MATLAB .mat. Örnek: DynaDAQ-VR kaydı.</span><span data-l="en">Export menu: the selected range as CSV or MATLAB .mat. Example: a DynaDAQ-VR recording.</span></figcaption>
+        </figure>
+        <pre class="csv" aria-label="CSV example"><span class="c"># DynaDAQ One export
+# source: Project_4_Part_1.dqrec (VR Acc)
+# device: Accelerometer
+# sample_rate_hz: 1007.871511
+# rtc_start: 2026-08-26 14:00:33.183594</span>
+time_s,X_g,Y_g,Z_g
+0.123032,0.265684307,0.691476583,0.6651088
+0.124024,0.267451763,0.686340928,0.667189181
+0.125016,0.263515174,0.682970703,0.669346631</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- THEME / PLATFORM -->
+  <section class="block" id="theme">
+    <div class="head">
+      <span class="tab-label"><span data-l="tr">Görünüm ve platform</span><span data-l="en">Appearance and platforms</span></span>
+      <h2><span data-l="tr">Koyu ya da açık tema, masaüstü ya da tablet</span><span data-l="en">Dark or light, desktop or tablet</span></h2>
+      <p><span data-l="tr">Setup › General’dan System, Light ya da Dark seçilir; grafik renkleri her iki temada okunur. Uygulama Windows’ta ve Android telefon ile tablette çalışır. Saat dilimi seçilebilir, kayıt klasörü değiştirilebilir, güncellemeler uygulamanın içinden denetlenir.</span>
+         <span data-l="en">Choose System, Light or Dark under Setup › General; plot colours stay readable in both. The app runs on Windows and on Android phones and tablets. Pick the time zone, change the recordings folder, and check for updates from inside the app.</span></p>
+    </div>
+    <div class="compare" id="cmp" style="--cut:50%">
+      <img src="img/vr-analyze-filtered.png" width="1582" height="991" alt="Analyze in dark theme" loading="lazy">
+      <div class="over"><img src="img/vr-analyze-filtered-light.png" width="1582" height="991" alt="Analyze in light theme" loading="lazy"></div>
+      <div class="rule"></div>
+      <span class="tag l">Dark</span><span class="tag r">Light</span>
+    </div>
+    <label for="cmp-range" class="eyebrow" style="display:block;margin-top:16px;color:var(--muted)"><span data-l="tr">Kaydırarak karşılaştırın</span><span data-l="en">Drag to compare</span></label>
+    <input class="range" type="range" id="cmp-range" min="0" max="100" value="50">
+  </section>
+
+  <!-- DEVICES -->
+  <section class="block" id="devices">
+    <div class="head">
+      <span class="tab-label"><span data-l="tr">Cihazlar</span><span data-l="en">Devices</span></span>
+      <h2><span data-l="tr">Tek başına ya da hepsi birlikte</span><span data-l="en">On its own or all together</span></h2>
+      <p><span data-l="tr">DynaDAQ One her Dynalabs cihazını tek başına kullanır. Birlikte bağlanan cihazları ortak zaman ekseninde senkron gösterir ve tek kayıt dosyasına yazar.</span>
+         <span data-l="en">DynaDAQ One runs each Dynalabs device on its own. Devices connected together are shown in sync on one time axis and written to one recording file.</span></p>
+      <div class="limits">
+        <span><b>4</b> <span data-l="tr">ivmeölçer</span><span data-l="en">accelerometers</span></span>
+        <span><b>1</b> BPS</span>
+        <span><b>2</b> DynaDAQ-VR</span>
+        <span class="muted" data-l="tr">aynı oturumda, aynı anda</span><span class="muted" data-l="en">in one session, at the same time</span>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <span class="dev-k">USB</span>
+        <h3><span data-l="tr">Dijital ve piezo ivmeölçer</span><span data-l="en">Digital and piezo accelerometer</span></h3>
+        <p><span data-l="tr">Üç eksenli USB ivmeölçer. Sensör tipi, eksen sayısı, ölçüm aralığı ve seri numarası cihazdan okunur; kalibrasyon sensörün içinde saklanır.</span>
+           <span data-l="en">Three-axis USB accelerometer. Sensor type, axes, range and serial are read from the device, and calibration is stored in the sensor.</span></p>
+        <ul class="specs">
+          <li><span class="k" data-l="tr">Kapasitif</span><span class="k" data-l="en">Capacitive</span><span class="v"><span data-l="tr">8 g ya da 40 g model; aralık yazılımdan seçilir</span><span data-l="en">8 g or 40 g model; range selected in the software</span></span></li>
+          <li><span class="k" data-l="tr">Piezo</span><span class="k" data-l="en">Piezo</span><span class="v"><span data-l="tr">Sabit aralık (25–2000 g), sensörden okunur</span><span data-l="en">Fixed range (25–2000 g), read from the sensor</span></span></li>
+          <li><span class="k" data-l="tr">Birlikte</span><span class="k" data-l="en">Together</span><span class="v"><span data-l="tr">Aynı anda 4 ivmeölçere kadar; her biri kendi kanallarıyla (X, Y, Z · X (2) …)</span><span data-l="en">Up to 4 at once, each with its own channels (X, Y, Z · X (2) …)</span></span></li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-acc" data-src="img/acc-measure.png"><img src="img/acc-measure.png" width="1582" height="991" alt="Measure with one piezo accelerometer" loading="lazy"></button>
+        <figcaption><span data-l="tr">Tek piezo ivmeölçer: araçta yol titreşimi ve bir çukur darbesi.</span><span data-l="en">One piezo accelerometer: road vibration in a vehicle and a pothole impact.</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="feature flip">
+      <div class="copy">
+        <span class="dev-k">GNSS</span>
+        <h3>BPS</h3>
+        <p><span data-l="tr">BPS GNSS alıcısı konumu, hızı, yönü ve yüksekliği verir. Measure’da araç haritada canlı izlenir; Analyze’da kaydın izi haritada oynatılır.</span>
+           <span data-l="en">The BPS GNSS receiver gives position, speed, heading and altitude. Measure follows the vehicle live on the map; Analyze replays the recorded track on the map.</span></p>
+        <ul class="specs">
+          <li><span class="k">Measure</span><span class="v"><span data-l="tr">Harita, fix ve uydu sayısı, hız, yön, yükseklik, sıfırlanabilir mesafe</span><span data-l="en">Map, fix and satellites, speed, heading, altitude, resettable distance</span></span></li>
+          <li><span class="k">Analyze</span><span class="v"><span data-l="tr">Haritada iz ve oynatma; en yüksek hız, hareket ortalaması, mesafe</span><span data-l="en">Track and playback on the map; max speed, moving average, distance</span></span></li>
+          <li><span class="k">Export</span><span class="v"><span data-l="tr">GNSS kanalları CSV, koordinat biçimi seçilebilir</span><span data-l="en">GNSS channels to CSV with a selectable coordinate format</span></span></li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-bps" data-src="img/bps-measure.png"><img src="img/bps-measure.png" width="1582" height="991" alt="Measure with BPS: map, speed, heading, altitude" loading="lazy"></button>
+        <figcaption><span data-l="tr">Yalnız BPS: harita, konum, hız, yön, yükseklik ve mesafe.</span><span data-l="en">BPS only: map, position, speed, heading, altitude and distance.</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="copy">
+        <span class="dev-k">USB · SD</span>
+        <h3>DynaDAQ-VR</h3>
+        <p><span data-l="tr">Titreşim kaydedici. Modeline göre dijital ve piezo ivmeölçer taşır. USB’den canlı izlenir; bilgisayarsız çalışırken SD karta kaydeder. Bu sayfadaki Setup, Measure ve Analyze örnekleri VR ile alındı.</span>
+           <span data-l="en">Vibration recorder with digital and piezo accelerometers depending on the model. Watch it live over USB; it records to its SD card when running without a computer. The Setup, Measure and Analyze examples on this page were taken with a VR.</span></p>
+        <ul class="specs">
+          <li><span class="k">USB</span><span class="v"><span data-l="tr">Canlı akış, Digital ya da Piezo seçimi</span><span data-l="en">Live stream, Digital or Piezo</span></span></li>
+          <li><span class="k">SD</span><span class="v"><span data-l="tr">Standard · Trigger · Timer kayıt, Storage mode ile kopyalama, Analyze’a içe aktarma</span><span data-l="en">Standard · Trigger · Timer logging, copy via Storage mode, import into Analyze</span></span></li>
+        </ul>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-vr" data-src="img/vr-measure-fft.png"><img src="img/vr-measure-fft.png" width="1582" height="991" alt="Measure with DynaDAQ-VR" loading="lazy"></button>
+        <figcaption><span data-l="tr">Yalnız VR: dijital ivmeölçer ve canlı FFT.</span><span data-l="en">VR only: digital accelerometer with live FFT.</span></figcaption>
+      </figure>
+    </div>
+
+    <div class="together">
+      <div class="copy">
+        <span class="dev-k" data-l="tr">Senkron</span><span class="dev-k" data-l="en">In sync</span>
+        <h3><span data-l="tr">Hepsi birlikte</span><span data-l="en">All together</span></h3>
+        <p><span data-l="tr">İvmeölçer, VR ve BPS aynı ekranda, aynı zaman ekseninde akar. İmleç, C1–C2 seçimi ve yakınlaştırma bütün cihazlara birlikte uygulanır. Tek Record bütün cihazları tek <span class="mono">.dqrec</span> dosyasına yazar; Analyze’da titreşimi aynı anın hızı ve haritadaki konumuyla birlikte okursunuz.</span>
+           <span data-l="en">Accelerometers, VR and BPS stream on one screen and one time axis. Cursor, C1–C2 selection and zoom apply to every device at once. One Record writes all of them into one <span class="mono">.dqrec</span> file, so Analyze shows vibration next to the speed and map position of the same moment.</span></p>
+      </div>
+      <figure class="shot">
+        <button type="button" class="zoom" id="z-all" data-src="img/all-measure.png"><img src="img/all-measure.png" width="1582" height="991" alt="Measure with accelerometer, VR and BPS together" loading="lazy"></button>
+        <figcaption><span data-l="tr">İvmeölçer + VR + BPS: titreşim, hız, yön, yükseklik ve harita aynı anda.</span><span data-l="en">Accelerometer + VR + BPS: vibration, speed, heading, altitude and map at the same moment.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ANDROID -->
+  <section class="block" id="android">
+    <div class="android">
+      <div class="copy">
+        <span class="tab-label">Android</span>
+        <h2><span data-l="tr">Sahada telefon ya da tabletle</span><span data-l="en">In the field with a phone or tablet</span></h2>
+        <p><span data-l="tr">DynaDAQ One’ın Android uygulaması masaüstüyle aynı Setup › Measure › Analyze akışını kullanır. Cihaz USB ile telefona ya da tablete bağlanır; ölçüm, kayıt ve analiz bilgisayar olmadan yapılır.</span>
+           <span data-l="en">The DynaDAQ One Android app uses the same Setup › Measure › Analyze flow as the desktop. Devices connect to the phone or tablet over USB, and measuring, recording and analysis work without a computer.</span></p>
+        <ul class="specs">
+          <li><span class="k" data-l="tr">Ekran</span><span class="k" data-l="en">Screen</span><span class="v"><span data-l="tr">Telefon ve tablet; alt sekmeler, dokunarak yakınlaştırma</span><span data-l="en">Phone and tablet; bottom tabs, pinch to zoom</span></span></li>
+          <li><span class="k" data-l="tr">Kayıtlar</span><span class="k" data-l="en">Recordings</span><span class="v"><span data-l="tr">Masaüstüyle aynı <span class="mono">.dqrec</span> dosyası; iki tarafta da açılır</span><span data-l="en">The same <span class="mono">.dqrec</span> file as the desktop, opens on both</span></span></li>
+          <li><span class="k">Analyze</span><span class="v"><span data-l="tr">İstatistik, FFT, filtre, harita ve oynatma</span><span data-l="en">Statistics, FFT, filters, map and playback</span></span></li>
+        </ul>
+      </div>
+      <div class="phones">
+        <figure class="shot phone">
+          <button type="button" class="zoom" id="z-and1" data-src="img/android-analyze.png"><img src="img/android-analyze.png" width="800" height="1300" alt="Android tablet, Analyze with two accelerometers and GNSS" loading="lazy"></button>
+          <figcaption><span data-l="tr">Tablet · Analyze: 2 ivmeölçer + BPS sürüş kaydı.</span><span data-l="en">Tablet · Analyze: 2 accelerometers + BPS drive.</span></figcaption>
+        </figure>
+        <figure class="shot phone">
+          <button type="button" class="zoom" id="z-and2" data-src="img/android-map.png"><img src="img/android-map.png" width="800" height="1300" alt="Android tablet, recorded route on the map" loading="lazy"></button>
+          <figcaption><span data-l="tr">Tablet · aynı kaydın haritadaki izi.</span><span data-l="en">Tablet · the same recording’s track on the map.</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- REQUIREMENTS + DOWNLOAD -->
+  <section class="block" id="download">
+    <div class="head">
+      <span class="tab-label"><span data-l="tr">Sistem gereksinimleri ve indirme</span><span data-l="en">System requirements and download</span></span>
+      <h2><span data-l="tr">Windows ya da Android</span><span data-l="en">Windows or Android</span></h2>
+      <p><span data-l="tr">Ofisteki bilgisayarda da, sahadaki tablette de çalışır. Aşağıdaki değerler rahat bir kullanım içindir; daha düşük donanımda da çalışabilir.</span>
+         <span data-l="en">Runs on the office PC and on a tablet in the field. The values below are for comfortable use; lower-spec hardware may also work.</span></p>
+    </div>
+
+    <div class="reqs">
+      <div class="req-card">
+        <div class="req-top">
+          <h3>Windows</h3>
+          <a class="dl" id="dl-win" href="https://github.com/muhammedtiryaki/dynadaq-one/releases/latest/download/DynaDAQ-One-Setup.exe">
+            <span data-l="tr">Windows için indir</span><span data-l="en">Download for Windows</span>
+            <small>.exe · ~30 MB</small>
+          </a>
+        </div>
+        <div class="req-table" role="table">
+          <div class="rt-h" role="row"><span></span><span>Minimum</span><span data-l="tr">Önerilen</span><span data-l="en">Recommended</span></div>
+          <div role="row"><span class="k" data-l="tr">İşletim sistemi</span><span class="k" data-l="en">OS</span><span>Windows 10 64-bit</span><span>Windows 11 64-bit</span></div>
+          <div role="row"><span class="k" data-l="tr">İşlemci</span><span class="k" data-l="en">CPU</span><span><span data-l="tr">2 çekirdek, x64</span><span data-l="en">Dual-core x64</span></span><span>Intel Core i5 / AMD Ryzen 5</span></div>
+          <div role="row"><span class="k">RAM</span><span>4 GB</span><span>8 GB</span></div>
+          <div role="row"><span class="k" data-l="tr">Depolama</span><span class="k" data-l="en">Storage</span><span><span data-l="tr">500 MB boş alan</span><span data-l="en">500 MB free</span></span><span><span data-l="tr">SSD, kayıtlar için 10 GB+</span><span data-l="en">SSD, 10 GB+ for recordings</span></span></div>
+          <div role="row"><span class="k" data-l="tr">Ekran</span><span class="k" data-l="en">Display</span><span>1366 × 768</span><span>1920 × 1080</span></div>
+          <div role="row"><span class="k">USB</span><span><span data-l="tr">USB 2.0 port</span><span data-l="en">USB 2.0 port</span></span><span><span data-l="tr">Her cihaza bir port ya da USB hub</span><span data-l="en">One port per device or a USB hub</span></span></div>
+        </div>
+        <p class="req-foot"><span data-l="tr">Kurulum yönetici izni ister; gerekli Microsoft Visual C++ bileşeni pakete dahildir, internetsiz kurulur. Güncellemeler uygulamanın içinden denetlenir.</span><span data-l="en">Setup needs administrator rights; the required Microsoft Visual C++ runtime is bundled and installs offline. Updates are checked from inside the app.</span></p>
+      </div>
+
+      <div class="req-card">
+        <div class="req-top">
+          <h3>Android</h3>
+          <a class="dl" id="dl-and" href="https://github.com/muhammedtiryaki/dynadaq-one/releases/latest/download/DynaDAQ-One.apk">
+            <span data-l="tr">Android için indir</span><span data-l="en">Download for Android</span>
+            <small>.apk · ~68 MB</small>
+          </a>
+        </div>
+        <div class="req-table" role="table">
+          <div class="rt-h" role="row"><span></span><span>Minimum</span><span data-l="tr">Önerilen</span><span data-l="en">Recommended</span></div>
+          <div role="row"><span class="k" data-l="tr">Sürüm</span><span class="k" data-l="en">Version</span><span>Android 7.0</span><span><span data-l="tr">Android 11 ve üstü</span><span data-l="en">Android 11 or later</span></span></div>
+          <div role="row"><span class="k" data-l="tr">İşlemci</span><span class="k" data-l="en">CPU</span><span><span data-l="tr">4 çekirdek, ARM</span><span data-l="en">Quad-core ARM</span></span><span><span data-l="tr">8 çekirdek, 64-bit</span><span data-l="en">Octa-core, 64-bit</span></span></div>
+          <div role="row"><span class="k">RAM</span><span>3 GB</span><span>6 GB</span></div>
+          <div role="row"><span class="k" data-l="tr">Depolama</span><span class="k" data-l="en">Storage</span><span><span data-l="tr">300 MB boş alan</span><span data-l="en">300 MB free</span></span><span><span data-l="tr">Kayıtlar için 4 GB+</span><span data-l="en">4 GB+ for recordings</span></span></div>
+          <div role="row"><span class="k" data-l="tr">Ekran</span><span class="k" data-l="en">Display</span><span><span data-l="tr">Telefon</span><span data-l="en">Phone</span></span><span><span data-l="tr">8 inç ve üstü tablet</span><span data-l="en">8-inch or larger tablet</span></span></div>
+          <div role="row"><span class="k">USB</span><span><span data-l="tr">USB OTG desteği</span><span data-l="en">USB OTG support</span></span><span><span data-l="tr">USB-C OTG + hub</span><span data-l="en">USB-C OTG + hub</span></span></div>
+        </div>
+        <p class="req-foot"><span data-l="tr">Cihaz bağlamak için USB host (OTG) desteği ve OTG kablo ya da adaptör gerekir. APK yüklerken “bilinmeyen kaynaklardan yükleme” izni istenir.</span><span data-l="en">Connecting devices needs USB host (OTG) support and an OTG cable or adapter. Installing the APK asks for permission to install from unknown sources.</span></p>
+      </div>
+    </div>
+
+    <p class="req-note"><span data-l="tr">İnternet yalnızca harita için gerekir; ölçüm, kayıt, analiz ve dışa aktarma internetsiz çalışır. Kayıt boyutu için örnek: 1 kHz’te üç eksenli bir ivmeölçerin bir saatlik kaydı yaklaşık 45 MB; 4 kHz’te yaklaşık 180 MB.</span>
+      <span data-l="en">Internet is only needed for the map; measuring, recording, analysis and export work offline. Recording size, for example: one hour of a three-axis accelerometer at 1 kHz is about 45 MB, about 180 MB at 4 kHz.</span></p>
+  </section>
+
+  <footer>
+    <span><b style="color:var(--fg)">Dyna</b><b style="color:#F37421">DAQ One</b> · Dynalabs</span>
+    <span class="mono">.dqrec · .dqconf · CSV · MATLAB .mat</span>
+  </footer>
+</main>
+
+<dialog class="lb" id="lb" aria-label="Screenshot">
+  <button type="button" id="lb-close">Esc ✕</button>
+  <img id="lb-img" src="" alt="">
+  <p id="lb-cap"></p>
+</dialog>
+
+</div>
+
+<script>
+(function () {
+  var page = document.getElementById('page');
+  function setLang(l) {
+    page.dataset.lang = l;
+    document.documentElement.lang = l;
+    document.querySelectorAll('.lang button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.set === l)); });
+    try { localStorage.setItem('dq-lang', l); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('dq-lang'); } catch (e) {}
+  setLang(saved || ((navigator.language || 'tr').toLowerCase().indexOf('tr') === 0 ? 'tr' : 'en'));
+  document.querySelectorAll('.lang button').forEach(function (b) { b.addEventListener('click', function () { setLang(b.dataset.set); }); });
+
+  // Separated / Combined
+  var views = {
+    'tab-sep': { src: 'img/vr-measure-fft.png', tr: 'Separated: her eksen kendi grafiğinde ve kendi ölçeğinde.', en: 'Separated: each axis on its own plot and scale.' },
+    'tab-comb': { src: 'img/vr-measure-combined.png', tr: 'Combined: üç eksen tek grafikte, ortak ölçekte; aynı an, aynı darbe.', en: 'Combined: all three axes on one plot and one scale; same moment, same impact.' }
+  };
+  document.querySelectorAll('.seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.seg button').forEach(function (o) { o.setAttribute('aria-selected', String(o === b)); });
+      var v = views[b.id];
+      document.getElementById('view-img').src = v.src;
+      document.getElementById('z-view').dataset.src = v.src;
+      document.getElementById('view-cap-tr').textContent = v.tr;
+      document.getElementById('view-cap-en').textContent = v.en;
+    });
+  });
+
+  // theme compare
+  var cmp = document.getElementById('cmp'), range = document.getElementById('cmp-range');
+  function cut(p) { cmp.style.setProperty('--cut', p + '%'); range.value = p; }
+  range.addEventListener('input', function () { cut(range.value); });
+  var dragging = false;
+  function fromEvent(e) { var r = cmp.getBoundingClientRect(); cut(Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100)).toFixed(1)); }
+  cmp.addEventListener('pointerdown', function (e) { dragging = true; cmp.setPointerCapture(e.pointerId); fromEvent(e); });
+  cmp.addEventListener('pointermove', function (e) { if (dragging) fromEvent(e); });
+  cmp.addEventListener('pointerup', function () { dragging = false; });
+  cmp.style.touchAction = 'pan-y';
+
+  // lightbox
+  var lb = document.getElementById('lb'), lbImg = document.getElementById('lb-img'), lbCap = document.getElementById('lb-cap');
+  document.querySelectorAll('.zoom').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var img = b.querySelector('img');
+      lbImg.src = b.dataset.src; lbImg.alt = img ? img.alt : '';
+      var cap = b.closest('figure') && b.closest('figure').querySelector('figcaption [data-l="' + page.dataset.lang + '"]');
+      lbCap.textContent = cap ? cap.textContent : '';
+      if (lb.showModal) lb.showModal();
+    });
+  });
+  document.getElementById('lb-close').addEventListener('click', function () { lb.close(); });
+  lb.addEventListener('click', function (e) { if (e.target === lb) lb.close(); });
+})();
+</script>
+
+</body>
+</html>
